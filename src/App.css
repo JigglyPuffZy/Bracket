@@ -236,6 +236,10 @@
   transform: translateY(-1px);
 }
 
+.participants__item[data-out='true'] {
+  opacity: 0.72;
+}
+
 .participants__num {
   display: grid;
   place-items: center;

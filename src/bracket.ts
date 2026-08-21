@@ -49,7 +49,7 @@ function slot(teamId: string | null, score = 0) {
 
 /**
  * Knockout bracket — fully random Round 1 pairings (no seeding bias).
- * 18 teams → 9 opening matches.
+ * Bracket field is 18 teams → 9 opening matches (display roster may be larger).
  */
 export function createBracket(): BracketState {
   const teams = createRosterTeams()
@@ -64,7 +64,7 @@ export function createBracket(): BracketState {
   }
   const round1Pairs = shuffle(pairs)
 
-  // Odd team would bye — not expected with 18, but keep safe
+  // Odd team would bye — not expected with even field, but keep safe
   const byeId =
     shuffledIds.length % 2 === 1 ? shuffledIds[shuffledIds.length - 1]! : null
 

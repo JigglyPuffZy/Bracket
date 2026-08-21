@@ -88,17 +88,27 @@ export default function App() {
         <div className="participants__head">
           <div>
             <h2 className="participants__title">Participating Teams</h2>
-            <p className="participants__sub">All registered squads in this tournament</p>
+            <p className="participants__sub">
+              All registered squads · {ROSTER.filter((t) => t.inBracket !== false).length} in
+              bracket
+            </p>
           </div>
           <p className="participants__count">{ROSTER.length}</p>
         </div>
         <ol className="participants__list">
           {ROSTER.map((team, index) => (
-            <li key={`${team.name}-${team.player}`} className="participants__item">
+            <li
+              key={`${team.name}-${team.player}`}
+              className="participants__item"
+              data-out={team.inBracket === false}
+            >
               <span className="participants__num">{String(index + 1).padStart(2, '0')}</span>
               <div className="participants__copy">
                 <span className="participants__team">{team.name}</span>
-                <span className="participants__player">{team.player}</span>
+                <span className="participants__player">
+                  {team.player}
+                  {team.inBracket === false ? ' · not in bracket' : ''}
+                </span>
               </div>
             </li>
           ))}
