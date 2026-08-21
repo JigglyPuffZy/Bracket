@@ -1,115 +1,121 @@
 import { createRosterTeams } from './roster'
 import type { BracketState, Match, Team } from './types'
-
-function nextPowerOfTwo(n: number): number {
-  let p = 1
-  while (p < n) p *= 2
-  return p
-}
+import { WINS_NEEDED } from './types'
 
 function shuffle<T>(items: T[]): T[] {
   const list = [...items]
+  // Crypto randomness when available so pairings stay unbiased
+  const rand =
+    typeof crypto !== 'undefined' && 'getRandomValues' in crypto
+      ? () => {
+          const buf = new Uint32Array(1)
+          crypto.getRandomValues(buf)
+          return buf[0]! / 2 ** 32
+        }
+      : Math.random
+
   for (let i = list.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
+    const j = Math.floor(rand() * (i + 1))
     ;[list[i], list[j]] = [list[j], list[i]]
   }
   return list
 }
 
+function coinFlip() {
+  if (typeof crypto !== 'undefined' && 'getRandomValues' in crypto) {
+    const buf = new Uint32Array(1)
+    crypto.getRandomValues(buf)
+    return (buf[0]! & 1) === 1
+  }
+  return Math.random() < 0.5
+}
+
+/** Match counts per round (includes one-team bye matches when needed). */
+function planRounds(teamCount: number): number[] {
+  const plan: number[] = []
+  let remaining = teamCount
+  while (remaining > 1) {
+    const playMatches = Math.floor(remaining / 2)
+    const byeMatches = remaining % 2
+    plan.push(playMatches + byeMatches)
+    remaining = playMatches + byeMatches
+  }
+  return plan
+}
+
+function slot(teamId: string | null, score = 0) {
+  return { teamId, score }
+}
+
 /**
- * Build a shuffled single-elim bracket.
- * Extra teams beyond the next lower power of two play each other first;
- * everyone else gets a bye into the main draw.
+ * Knockout bracket — fully random Round 1 pairings (no seeding bias).
+ * 18 teams → 9 Best of 3 series.
  */
 export function createBracket(): BracketState {
-  const size = nextPowerOfTwo(createRosterTeams().length)
-  const rounds = Math.log2(size)
-  const firstRoundMatches = size / 2
+  const teams = createRosterTeams()
+  const shuffledIds = shuffle(teams.map((team) => team.id))
 
-  const shuffled = shuffle(createRosterTeams()).map((team, index) => ({
-    ...team,
-    id: `team-${index + 1}`,
-    seed: index + 1,
-  }))
-
-  const byeCount = size - shuffled.length
-  const playCount = shuffled.length - byeCount
-  const playMatchCount = playCount / 2
-
-  const playTeams = shuffled.slice(0, playCount)
-  const byeTeams = shuffled.slice(playCount)
-
-  const playMatchIndexes = new Set(
-    shuffle([...Array(firstRoundMatches).keys()]).slice(0, playMatchCount),
-  )
-
-  const firstRoundSlots: Array<[string | null, string | null]> = []
-  let playCursor = 0
-  let byeCursor = 0
-
-  for (let m = 0; m < firstRoundMatches; m++) {
-    if (playMatchIndexes.has(m)) {
-      firstRoundSlots.push([playTeams[playCursor].id, playTeams[playCursor + 1].id])
-      playCursor += 2
-    } else if (byeCursor < byeTeams.length) {
-      // Randomize which side gets the bye team
-      if (Math.random() < 0.5) {
-        firstRoundSlots.push([byeTeams[byeCursor].id, null])
-      } else {
-        firstRoundSlots.push([null, byeTeams[byeCursor].id])
-      }
-      byeCursor += 1
-    } else {
-      firstRoundSlots.push([null, null])
-    }
+  // Random pairs, then randomize side (top/bottom), then shuffle match order
+  const pairs: Array<[string, string]> = []
+  for (let i = 0; i + 1 < shuffledIds.length; i += 2) {
+    const a = shuffledIds[i]!
+    const b = shuffledIds[i + 1]!
+    pairs.push(coinFlip() ? [a, b] : [b, a])
   }
+  const round1Pairs = shuffle(pairs)
 
+  // Odd team would bye — not expected with 18, but keep safe
+  const byeId =
+    shuffledIds.length % 2 === 1 ? shuffledIds[shuffledIds.length - 1]! : null
+
+  const plan = planRounds(teams.length)
   const matches: Match[] = []
 
-  for (let r = 0; r < rounds; r++) {
-    const matchCount = size / 2 ** (r + 1)
-    for (let m = 0; m < matchCount; m++) {
-      const slots =
-        r === 0
-          ? firstRoundSlots[m]
-          : ([null, null] as [string | null, string | null])
+  for (let r = 0; r < plan.length; r++) {
+    for (let m = 0; m < plan[r]; m++) {
+      let top: string | null = null
+      let bottom: string | null = null
+
+      if (r === 0) {
+        if (m < round1Pairs.length) {
+          top = round1Pairs[m]![0]
+          bottom = round1Pairs[m]![1]
+        } else if (byeId) {
+          top = byeId
+        }
+      }
 
       matches.push({
         id: `r${r}-m${m}`,
         roundIndex: r,
         matchIndex: m,
-        slots: [
-          { teamId: slots[0], score: null },
-          { teamId: slots[1], score: null },
-        ],
+        slots: [slot(top), slot(bottom)],
         winnerId: null,
       })
     }
   }
 
-  return applyByes({ teams: shuffled, matches, size })
+  return applyByes({
+    teams,
+    matches,
+    size: teams.length,
+  })
 }
 
-/** Auto-advance first-round matches that only have one real team (bye). */
 function applyByes(state: BracketState): BracketState {
   const matches = state.matches.map((m) => ({
     ...m,
     slots: [...m.slots] as Match['slots'],
   }))
 
-  for (const match of matches) {
-    if (match.roundIndex !== 0) continue
-    const [a, b] = match.slots
-    if (a.teamId && !b.teamId) match.winnerId = a.teamId
-    else if (b.teamId && !a.teamId) match.winnerId = b.teamId
-  }
+  for (const match of matches) resolveMatchWinner(match)
 
-  return { ...state, matches: reconcile(matches, state.size) }
+  return { ...state, matches: reconcile(matches) }
 }
 
 export function getRounds(state: BracketState): Match[][] {
-  const count = Math.log2(state.size)
-  return Array.from({ length: count }, (_, r) =>
+  const maxRound = state.matches.reduce((max, m) => Math.max(max, m.roundIndex), 0)
+  return Array.from({ length: maxRound + 1 }, (_, r) =>
     state.matches
       .filter((m) => m.roundIndex === r)
       .sort((a, b) => a.matchIndex - b.matchIndex),
@@ -121,79 +127,137 @@ export function getTeam(state: BracketState, teamId: string | null): Team | null
   return state.teams.find((t) => t.id === teamId) ?? null
 }
 
-export function roundLabel(roundIndex: number, size: number): string {
-  const remaining = size / 2 ** roundIndex
-  if (remaining === 2) return 'Final'
-  if (remaining === 4) return 'Semifinals'
-  if (remaining === 8) return 'Quarterfinals'
-  if (remaining === 16) return 'Round of 16'
-  if (remaining === 32) return 'Round of 32'
+export function roundLabel(roundIndex: number, roundsTotal: number): string {
+  const fromEnd = roundsTotal - 1 - roundIndex
+  if (fromEnd === 0) return 'Final'
+  if (fromEnd === 1) return 'Semifinals'
+  if (fromEnd === 2) return 'Quarterfinals'
+  if (roundIndex === 0) return 'Round 1'
   return `Round ${roundIndex + 1}`
 }
 
-function reconcile(matches: Match[], size: number): Match[] {
+function resolveMatchWinner(match: Match) {
+  const [a, b] = match.slots
+  if (a.teamId && !b.teamId) {
+    match.winnerId = a.teamId
+    return
+  }
+  if (b.teamId && !a.teamId) {
+    match.winnerId = b.teamId
+    return
+  }
+  if (!a.teamId || !b.teamId) {
+    match.winnerId = null
+    return
+  }
+
+  if (a.score >= WINS_NEEDED) match.winnerId = a.teamId
+  else if (b.score >= WINS_NEEDED) match.winnerId = b.teamId
+  else match.winnerId = null
+}
+
+function fillRoundFromAdvancing(nextRound: Match[], advancing: string[]) {
+  for (const match of nextRound) {
+    match.slots = [slot(null), slot(null)]
+    match.winnerId = null
+  }
+
+  const playPairs = Math.floor(advancing.length / 2)
+  const hasBye = advancing.length % 2 === 1
+
+  for (let i = 0; i < playPairs; i++) {
+    const match = nextRound[i]
+    if (!match) break
+    match.slots = [slot(advancing[i * 2]), slot(advancing[i * 2 + 1])]
+    match.winnerId = null
+  }
+
+  if (hasBye) {
+    const match = nextRound[playPairs]
+    if (match) {
+      match.slots = [slot(advancing[advancing.length - 1]), slot(null)]
+      match.winnerId = advancing[advancing.length - 1]
+    }
+  }
+}
+
+function reconcile(matches: Match[]): Match[] {
   const byKey = new Map(
     matches.map((m) => [
       `${m.roundIndex}-${m.matchIndex}`,
-      { ...m, slots: [...m.slots] as Match['slots'] },
+      {
+        ...m,
+        slots: [
+          { ...m.slots[0] },
+          { ...m.slots[1] },
+        ] as Match['slots'],
+      },
     ]),
   )
-  const rounds = Math.log2(size)
 
-  for (let r = 0; r < rounds; r++) {
-    const matchCount = size / 2 ** (r + 1)
-    for (let m = 0; m < matchCount; m++) {
-      const match = byKey.get(`${r}-${m}`)!
-      const [a, b] = match.slots
-      const bothReady = Boolean(a.teamId && b.teamId)
-      const winnerStillValid =
-        bothReady && (match.winnerId === a.teamId || match.winnerId === b.teamId)
+  const maxRound = matches.reduce((max, m) => Math.max(max, m.roundIndex), 0)
 
-      const isByeWin =
-        r === 0 &&
-        Boolean(match.winnerId) &&
-        ((a.teamId === match.winnerId && !b.teamId) ||
-          (b.teamId === match.winnerId && !a.teamId))
+  for (let r = 0; r <= maxRound; r++) {
+    const roundMatches = [...byKey.values()]
+      .filter((m) => m.roundIndex === r)
+      .sort((a, b) => a.matchIndex - b.matchIndex)
 
-      match.winnerId = winnerStillValid || isByeWin ? match.winnerId : null
+    for (const match of roundMatches) resolveMatchWinner(match)
 
-      if (r < rounds - 1) {
-        const next = byKey.get(`${r + 1}-${Math.floor(m / 2)}`)!
-        const slot = m % 2
-        const nextSlots = [...next.slots] as Match['slots']
-        nextSlots[slot] = {
-          teamId: match.winnerId,
-          score: null,
-        }
-        next.slots = nextSlots
-      }
-    }
+    if (r === maxRound) break
+
+    const advancing = roundMatches
+      .map((m) => m.winnerId)
+      .filter((id): id is string => Boolean(id))
+
+    const nextRound = [...byKey.values()]
+      .filter((m) => m.roundIndex === r + 1)
+      .sort((a, b) => a.matchIndex - b.matchIndex)
+
+    fillRoundFromAdvancing(nextRound, advancing)
   }
 
   return Array.from(byKey.values())
 }
 
-export function selectWinner(
+/** Award one map win in a best-of-3 series. First to 2 advances. */
+export function awardGameWin(
   state: BracketState,
   matchId: string,
-  winnerId: string,
+  teamId: string,
 ): BracketState {
   const match = state.matches.find((m) => m.id === matchId)
   if (!match) return state
   if (!match.slots[0].teamId || !match.slots[1].teamId) return state
-  if (!match.slots.some((s) => s.teamId === winnerId)) return state
+  if (!match.slots.some((s) => s.teamId === teamId)) return state
+  if (match.winnerId) return state
 
-  const nextMatches = state.matches.map((m) =>
-    m.id === matchId
-      ? { ...m, winnerId, slots: [...m.slots] as Match['slots'] }
-      : { ...m, slots: [...m.slots] as Match['slots'] },
-  )
+  const nextMatches = state.matches.map((m) => {
+    if (m.id !== matchId) {
+      return {
+        ...m,
+        slots: [{ ...m.slots[0] }, { ...m.slots[1] }] as Match['slots'],
+      }
+    }
 
-  return { ...state, matches: reconcile(nextMatches, state.size) }
+    const slots = [{ ...m.slots[0] }, { ...m.slots[1] }] as Match['slots']
+    const index = slots.findIndex((s) => s.teamId === teamId)
+    if (index < 0) return m
+
+    slots[index] = {
+      ...slots[index],
+      score: Math.min(WINS_NEEDED, slots[index].score + 1),
+    }
+
+    return { ...m, slots, winnerId: null }
+  })
+
+  return { ...state, matches: reconcile(nextMatches) }
 }
 
 export function getChampion(state: BracketState): Team | null {
-  const final = state.matches.find((m) => m.roundIndex === Math.log2(state.size) - 1)
+  const rounds = getRounds(state)
+  const final = rounds[rounds.length - 1]?.[0]
   if (!final?.winnerId) return null
   return getTeam(state, final.winnerId)
 }

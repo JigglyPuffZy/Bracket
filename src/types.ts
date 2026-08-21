@@ -7,7 +7,8 @@ export type Team = {
 
 export type MatchSlot = {
   teamId: string | null
-  score: number | null
+  /** Map wins in a best-of-3 series (0–2). */
+  score: number
 }
 
 export type Match = {
@@ -23,3 +24,6 @@ export type BracketState = {
   matches: Match[]
   size: number
 }
+
+/** First to this many map wins takes the match. */
+export const WINS_NEEDED = 2

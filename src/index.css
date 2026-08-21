@@ -1,13 +1,13 @@
 :root {
-  --ink: #0e131b;
-  --ink-2: #151b26;
-  --panel: #1a2230;
-  --panel-2: #222c3d;
-  --line: #2f3b50;
-  --muted: #93a0b4;
-  --text: #eef2f7;
+  --ink: #0b0f16;
+  --ink-2: #121925;
+  --panel: #182131;
+  --panel-2: #212c3f;
+  --line: #314257;
+  --muted: #95a4b8;
+  --text: #f1f4f8;
   --accent: #d4af37;
-  --accent-dim: #b8922e;
+  --accent-dim: #b8912c;
   --danger: #e85d5d;
   --font-display: 'IBM Plex Sans', 'Segoe UI', sans-serif;
   --font-body: 'IBM Plex Sans', 'Segoe UI', sans-serif;
@@ -21,7 +21,6 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: 0.01em;
 }
 
 *,
@@ -49,7 +48,7 @@ input {
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
