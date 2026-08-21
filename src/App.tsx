@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   awardGameWin,
   countPlayableMatches,
@@ -8,13 +8,18 @@ import {
 import { BracketBoard } from './components/BracketBoard'
 import { GuidelinesPanel } from './components/GuidelinesPanel'
 import { TOURNAMENT } from './guidelines'
+import { loadBracket, saveBracket } from './persist'
 import { ROSTER } from './roster'
 import type { BracketState } from './types'
 import './App.css'
 
 export default function App() {
-  const [state, setState] = useState<BracketState>(() => createBracket())
+  const [state, setState] = useState<BracketState>(() => loadBracket())
   const [guidelinesOpen, setGuidelinesOpen] = useState(false)
+
+  useEffect(() => {
+    saveBracket(state)
+  }, [state])
 
   const champion = getChampion(state)
   const playable = countPlayableMatches(state)
@@ -23,7 +28,9 @@ export default function App() {
   ).length
 
   function handleShuffle() {
-    const ok = window.confirm('Shuffle all matchups? Current scores will be cleared.')
+    const ok = window.confirm(
+      'Shuffle all matchups? This replaces the saved bracket and clears scores.',
+    )
     if (ok) setState(createBracket())
   }
 
