@@ -1,0 +1,226 @@
+.guide {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  justify-items: end;
+  animation: guide-fade 0.2s ease both;
+}
+
+.guide__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(6, 10, 8, 0.72);
+  cursor: pointer;
+}
+
+.guide__panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 34rem);
+  height: 100%;
+  max-height: 100dvh;
+  overflow: hidden;
+  border-left: 1px solid var(--line);
+  background:
+    linear-gradient(165deg, rgba(212, 175, 55, 0.07), transparent 28%),
+    var(--ink-2);
+  box-shadow: -24px 0 60px rgba(0, 0, 0, 0.4);
+  animation: guide-slide 0.28s ease both;
+}
+
+.guide__header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.35rem 1.35rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.guide__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2.8vw, 1.55rem);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.guide__partners {
+  margin: 0.55rem 0 0;
+  max-width: 22rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.guide__close {
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  padding: 0.55rem 0.85rem;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.guide__close:hover {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+
+.guide__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0.5rem 1.1rem 2rem 1.35rem;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-dim) var(--panel);
+}
+
+.guide__body::-webkit-scrollbar {
+  width: 10px;
+}
+
+.guide__body::-webkit-scrollbar-track {
+  background: var(--panel);
+}
+
+.guide__body::-webkit-scrollbar-thumb {
+  background: var(--accent-dim);
+  border: 2px solid var(--panel);
+}
+
+.guide__section {
+  padding: 1.15rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.guide__section:last-child {
+  border-bottom: 0;
+}
+
+.guide__section-title {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.guide__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.guide__item {
+  position: relative;
+  padding-left: 1rem;
+  color: #c5d2ca;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.guide__item::before {
+  content: '';
+  position: absolute;
+  top: 0.55rem;
+  left: 0;
+  width: 0.35rem;
+  height: 0.35rem;
+  background: var(--accent);
+}
+
+.guide__note {
+  margin: 0;
+  color: #c5d2ca;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.guide__section--note {
+  border-bottom: 0;
+}
+
+.guide__section--ingame {
+  padding: 1.15rem 1rem;
+  margin: 0.25rem -0.25rem;
+  border: 1px solid #f5d547;
+  background: linear-gradient(160deg, rgba(220, 40, 40, 0.12), rgba(255, 255, 255, 0.03));
+}
+
+.guide__section--ingame .guide__section-title {
+  color: #f5d547;
+}
+
+.guide__section--ingame .guide__item {
+  color: #ffffff;
+}
+
+.guide__section--ingame .guide__item::before {
+  background: #e53935;
+}
+
+.guide__section--ingame .guide__item[data-tone='white'] {
+  color: #ffffff;
+}
+
+.guide__section--ingame .guide__item[data-tone='white']::before {
+  background: #ffffff;
+}
+
+.guide__section--ingame .guide__item[data-tone='red'] {
+  color: #ff6b6b;
+}
+
+.guide__section--ingame .guide__item[data-tone='red']::before {
+  background: #e53935;
+}
+
+.guide__section--ingame .guide__item[data-tone='yellow'] {
+  color: #f5d547;
+}
+
+.guide__section--ingame .guide__item[data-tone='yellow']::before {
+  background: #f5d547;
+}
+
+@keyframes guide-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes guide-slide {
+  from {
+    transform: translateX(1.25rem);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 560px) {
+  .guide__panel {
+    width: 100%;
+    border-left: 0;
+  }
+}
