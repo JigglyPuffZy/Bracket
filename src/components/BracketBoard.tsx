@@ -172,10 +172,10 @@ function MobileMatchups({ state, rounds, champion, onAwardWin }: ViewProps) {
           <p className="mobile__hint">
             {champion
               ? `${champion.name} wins the tournament`
-              : `Tap a team to award a map win · first to 2 · ${decided}/${activeRound.length} done`}
-          </p>
-        </div>
+              : `Tap a team to advance · Knockout · ${decided}/${activeRound.length} done`}
+        </p>
       </div>
+    </div>
 
       {champion ? (
         <div className="mobile__champ" data-crowned>
@@ -189,7 +189,7 @@ function MobileMatchups({ state, rounds, champion, onAwardWin }: ViewProps) {
             <article className="mobile__card" key={match.id}>
               <div className="mobile__card-head">
                 <span>Match {index + 1}</span>
-                <span className="mobile__bo3">Best of 3</span>
+                <span className="mobile__format">Knockout</span>
               </div>
               <MatchCard
                 match={match}

@@ -25,5 +25,5 @@ export type BracketState = {
   size: number
 }
 
-/** First to this many map wins takes the match. */
-export const WINS_NEEDED = 2
+/** Maps needed to win a series. 1 = straight knockout. */
+export const WINS_NEEDED = 1

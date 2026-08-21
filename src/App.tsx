@@ -62,7 +62,7 @@ export default function App() {
             </p>
           ) : (
             <p className="meta__text">
-              Click a team to award a map win. First to <strong>2</strong> advances.
+              Click a team to advance them. Knockout format.
             </p>
           )}
         </div>

@@ -49,7 +49,7 @@ function slot(teamId: string | null, score = 0) {
 
 /**
  * Knockout bracket — fully random Round 1 pairings (no seeding bias).
- * 18 teams → 9 Best of 3 series.
+ * 18 teams → 9 opening matches.
  */
 export function createBracket(): BracketState {
   const teams = createRosterTeams()
@@ -220,7 +220,7 @@ function reconcile(matches: Match[]): Match[] {
   return Array.from(byKey.values())
 }
 
-/** Award one map win in a best-of-3 series. First to 2 advances. */
+/** Award a win in a knockout match. */
 export function awardGameWin(
   state: BracketState,
   matchId: string,

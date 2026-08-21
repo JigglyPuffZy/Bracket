@@ -1,4 +1,5 @@
 import type { Match, Team } from '../types'
+import { WINS_NEEDED } from '../types'
 import './MatchCard.css'
 
 type Props = {
@@ -13,6 +14,7 @@ export function MatchCard({ match, getTeam, onAwardWin }: Props) {
   const isBye =
     Boolean(match.slots[0].teamId) !== Boolean(match.slots[1].teamId) &&
     (decided || match.slots.some((s) => s.teamId))
+  const showScores = WINS_NEEDED > 1
 
   return (
     <article
@@ -40,8 +42,10 @@ export function MatchCard({ match, getTeam, onAwardWin }: Props) {
             aria-label={
               team
                 ? canAward
-                  ? `Award map win to ${team.name}`
-                  : `${team.name}, ${slot.score} map wins`
+                  ? `Advance ${team.name}`
+                  : isWinner
+                    ? `${team.name} advances`
+                    : `${team.name}`
                 : showBye
                   ? 'Bye'
                   : 'Waiting for teams'
@@ -60,7 +64,15 @@ export function MatchCard({ match, getTeam, onAwardWin }: Props) {
               )}
             </span>
             <span className="match__score">
-              {team && (ready || decided) ? slot.score : ''}
+              {showScores
+                ? team && (ready || decided)
+                  ? slot.score
+                  : ''
+                : isWinner
+                  ? '★'
+                  : canAward
+                    ? '›'
+                    : ''}
             </span>
           </button>
         )
